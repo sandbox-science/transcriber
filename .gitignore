@@ -1,0 +1,8 @@
+build
+
+*.mp4
+*.mov
+.venv
+.mypy_cache
+
+target
