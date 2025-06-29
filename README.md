@@ -7,7 +7,7 @@ A fast, Rust video subtitle pipeline that:
 - Generates SRT subtitle files
 - Burns subtitles into the original video with `ffmpeg`
 
-> [!INFO]
+> [!IMPORTANT]
 >
 > This project has been tested on macOS only. Thus, the following information assumes your system is a Mac.
 
