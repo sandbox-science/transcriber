@@ -1,69 +1,137 @@
-use crate::types::Segment;
+use crate::types::{Segment, StyleConfig};
 
-use std::time::Duration;
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
 use anyhow::{Context, Result, anyhow};
 use log::info;
 
-
 pub struct SubtitleGenerator;
 
 impl SubtitleGenerator {
-    pub fn generate(segments: Vec<Segment>, srt_path: &str) -> Result<()> {
-        info!("Generating SRT...");
+    fn css_hex_to_ass(hex: &str) -> String {
+        let hex = hex.trim_start_matches('#');
+        if hex.len() != 6 {
+            return "&H00FFFFFF".to_string(); // default white
+        }
 
-        let mut srt_content = String::new();
-        let mut index       = 1;
+        let r = &hex[0..2];
+        let g = &hex[2..4];
+        let b = &hex[4..6];
+        format!("&H00{}{}{}", b, g, r)
+    }
+
+    fn map_alignment(horizontal: &str, vertical: &str) -> u8 {
+        match (horizontal, vertical) {
+            ("left", "bottom")   => 1,
+            ("center", "bottom") => 2,
+            ("right", "bottom")  => 3,
+            ("left", "middle")   => 4,
+            ("center", "middle") => 5,
+            ("right", "middle")  => 6,
+            ("left", "top")      => 7,
+            ("center", "top")    => 8,
+            ("right", "top")     => 9,
+            _ => 2, // default to center bottom
+        }
+    }
+
+    fn seconds_to_ass_time(secs: f32) -> String {
+        let hours   = (secs / 3600.0) as u32;
+        let minutes = ((secs % 3600.0) / 60.0) as u32;
+        let seconds = (secs % 60.0) as f32;
+
+        format!("{:01}:{:02}:{:05.2}", hours, minutes, seconds)
+    }
+
+    pub fn generate( segments: Vec<Segment>, ass_path: &str, style: &StyleConfig) -> Result<()> {
+        let primary_color   = Self::css_hex_to_ass(&style.text_color);
+        let highlight_color = Self::css_hex_to_ass(&style.highlight_color);
+        let alignment       = Self::map_alignment(&style.text_alignment, &style.vertical_position);
+
+        let solid_background = if style.background.r#type == "solid" {
+            style.background.solid_color.as_deref().unwrap_or("#000000")
+        } else {
+            "#000000"
+        };
+        let back_color = Self::css_hex_to_ass(solid_background);
+
+        let mut ass_content = String::new();
+        ass_content.push_str("[Script Info]\n");
+        ass_content.push_str("Title: Styled Subs\n");
+        ass_content.push_str("ScriptType: v4.00+\n");
+        ass_content.push_str("PlayResY: 720\n");
+        ass_content.push_str("PlayResX: 1280\n\n");
+
+        ass_content.push_str("[V4+ Styles]\n");
+        ass_content.push_str(
+            "Format: Name, Fontname, Fontsize, PrimaryColour,
+            SecondaryColour, OutlineColour, BackColour, Bold,
+            Italic, Underline, StrikeOut, ScaleX, ScaleY,
+            Spacing, Angle, BorderStyle, Outline, Shadow,
+            Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        );
+        ass_content.push_str(&format!(
+            "Style: Default,{},{},{},{},{},{},-1,0,0,0,100,100,0,0,1,2,2,{},10,10,10,1\n\n",
+            style.font_family,
+            style.font_size_px,
+            primary_color,
+            highlight_color,
+            "&H00000000", // outline
+            back_color,
+            alignment
+        ));
+
+        ass_content.push_str("[Events]\n");
+        ass_content.push_str("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n");
 
         for seg in segments {
-            for word_info in seg.words {
-                let start   = Duration::from_secs_f32(word_info.start);
-                let end     = Duration::from_secs_f32(word_info.end);
-                let content = word_info.word.trim();
-                if content.is_empty() {
-                    continue;
-                }
-
-                let start_time = format!(
-                    "{:02}:{:02}:{:02},{:03}",
-                    start.as_secs() / 3600,
-                    (start.as_secs() % 3600) / 60,
-                    start.as_secs() % 60,
-                    start.subsec_millis()
-                );
-
-                let end_time = format!(
-                    "{:02}:{:02}:{:02},{:03}",
-                    end.as_secs() / 3600,
-                    (end.as_secs() % 3600) / 60,
-                    end.as_secs() % 60,
-                    end.subsec_millis()
-                );
-
-                srt_content.push_str(&format!("{}\n{} --> {}\n{}\n\n", index, start_time, end_time, content));
-                index += 1;
+            for word in seg.words {
+                let start = Self::seconds_to_ass_time(word.start);
+                let end = Self::seconds_to_ass_time(word.end);
+                ass_content.push_str(&format!(
+                    "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{}\n",
+                    start, end, alignment, word.word.trim()
+                ));
             }
         }
-        File::create(srt_path)?.write_all(srt_content.as_bytes())?;
 
+        File::create(ass_path)?.write_all(ass_content.as_bytes())?;
         Ok(())
     }
 
-    pub fn burn(video_path: &str, srt_path: &str, output_path: &str) -> Result<()> {
-        info!("Burning subtitles into video...");
+    pub fn burn(audio_path: &str, ass_path: &str, output_path: &str, style: &StyleConfig) -> Result<()> {
+        info!("Burning subtitles onto synthetic background...");
 
-        let status = Command::new("ffmpeg")
-            .args(["-y", "-i", video_path, "-vf", &format!("subtitles={}", srt_path), 
-               "-c:a", "copy", output_path])
-            .status()
-            .context("Failed to run ffmpeg for subtitle burning")?;
+        let mut cmd = Command::new("ffmpeg");
+        cmd.arg("-y");
 
-        if !status.success() {
-            return Err(anyhow!("FFmpeg subtitles burning failed for file {}", output_path));
+        match style.background.r#type.as_str() {
+            "solid" => {
+                let color = style.background.solid_color.as_deref().unwrap_or("#000000");
+                let color_hex = &color[1..];
+                cmd.args(&["-f", "lavfi", "-i", &format!("color=c=0x{}:s=1280x720:d=3600", color_hex)]);
+            },
+            "image" => {
+                let img = style.background.image_url.as_deref().expect("imageUrl required for image background");
+                cmd.args(&["-loop", "1", "-i", img]);
+            },
+            "video" => {
+                let vid = style.background.video_url.as_deref().expect("videoUrl required for video background");
+                cmd.args(&["-i", vid]);
+            },
+            _ => {
+                // fallback
+                cmd.args(&["-f", "lavfi", "-i", "color=c=black:s=1280x720:d=3600"]);
+            }
         }
 
+        cmd.args(&["-i", audio_path, "-vf", &format!("ass={}", ass_path), "-c:a", "copy", "-shortest", output_path]);
+
+        let status = cmd.status().context("Failed to run ffmpeg")?;
+        if !status.success() {
+            return Err(anyhow!("FFmpeg failed to render video {}", output_path));
+        }
         Ok(())
     }
 }
