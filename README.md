@@ -32,6 +32,7 @@ This is needed because I am currently loading Whisper through Python.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+pip3 install openai-whisper
 ```
 
 ### 2. Build Transcriber
