@@ -1,7 +1,9 @@
 build
 
+*.mp3
 *.mp4
 *.mov
+
 .venv
 .mypy_cache
 
