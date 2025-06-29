@@ -4,7 +4,7 @@ A fast, Rust video subtitle pipeline that:
 
 - Extracts audio from a video using `ffmpeg`
 - Transcribes it to text with timestamps using `whisper` (currently using Python for this, need to convert using Rust native)
-- Generates SRT subtitle files
+- Generates ASS subtitle files with styling
 - Burns subtitles into the original video with `ffmpeg`
 
 > [!IMPORTANT]
