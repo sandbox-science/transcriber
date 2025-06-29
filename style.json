@@ -1,0 +1,13 @@
+{
+  "text_alignment": "center",
+  "vertical_position": "middle",
+  "font_family": "Inter",
+  "font_size_px": 48,
+  "font_weight": "bold",
+  "text_color": "#FFFFFF",
+  "highlight_color": "#FFAA33",
+  "background": {
+    "type": "solid",
+    "solid_color": "#101020"
+  }
+}
