@@ -5,9 +5,11 @@
   "font_size_px": 48,
   "font_weight": "bold",
   "text_color": "#FFFFFF",
-  "highlight_color": "#FFAA33",
+  "highlight_color": "#101020",
+  "border_style": 3,
+  "outline_color": "&H000000FF",
   "background": {
     "type": "solid",
-    "solid_color": "#101020"
+    "solid_color": "#000000"
   }
 }

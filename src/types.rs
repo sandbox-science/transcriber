@@ -26,7 +26,10 @@ pub struct StyleConfig {
     pub vertical_position: String,
     pub font_family: String,
     pub font_size_px: u32,
+    pub font_weight: String,
     pub text_color: String,
     pub highlight_color: String,
+    pub outline_color: String,
+    pub border_style: Option<u8>,
     pub background: BackgroundConfig,
 }
