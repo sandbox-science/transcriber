@@ -45,4 +45,4 @@ cargo run -- --input "test2.mov"
 
 > [!NOTE]
 >
-> **TODO:** Currently, I am using a Python script to load **openai-whisper**. We need to implement a native Rust solution instead.
+> **TODO:** Currently, I am using a Python script to load **openai-whisper**. We need to implement a native Rust solution instead [Ticket Open](https://github.com/sandbox-science/transcriber/issues/1).
