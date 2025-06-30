@@ -13,6 +13,10 @@ A fast, Rust video subtitle pipeline that:
 
 ---
 
+The Engineering Requirements Document (**ERD**) is available here : https://docs.google.com/document/d/1xfLcfE5BA1i_wjUSHHJYuA4zneVqrm4rEg2bf_YeltQ/edit?usp=sharing
+
+---
+
 > [!NOTE]
 >
 > **TODO:** Currently, I am using a Python script to load **openai-whisper**. We need to implement a native Rust solution instead.
