@@ -11,17 +11,8 @@ A fast, Rust video subtitle pipeline that:
 >
 > This project has been tested on macOS only. Thus, the following information assumes your system is a Mac.
 
----
-
+## Engineering Requirements Document
 The Engineering Requirements Document (**ERD**) is available here : https://docs.google.com/document/d/1xfLcfE5BA1i_wjUSHHJYuA4zneVqrm4rEg2bf_YeltQ/edit?usp=sharing
-
----
-
-> [!NOTE]
->
-> **TODO:** Currently, I am using a Python script to load **openai-whisper**. We need to implement a native Rust solution instead.
-
----
 
 ## Getting started
 
@@ -50,3 +41,8 @@ cargo build
 cargo run -- --input "test2.mov"
 ```
 
+---
+
+> [!NOTE]
+>
+> **TODO:** Currently, I am using a Python script to load **openai-whisper**. We need to implement a native Rust solution instead.
