@@ -1,11 +1,10 @@
-use crate::types::{Segment, StyleConfig};
+use crate::types::{Segment, StyleConfig, WordInfo};
 
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
 use anyhow::{Context, Result, anyhow};
 use log::info;
-
 pub struct SubtitleGenerator;
 
 impl SubtitleGenerator {
@@ -18,6 +17,7 @@ impl SubtitleGenerator {
         let r = &hex[0..2];
         let g = &hex[2..4];
         let b = &hex[4..6];
+
         format!("&H00{}{}{}", b, g, r)
     }
 
@@ -44,17 +44,22 @@ impl SubtitleGenerator {
         format!("{:01}:{:02}:{:05.2}", hours, minutes, seconds)
     }
 
-    pub fn generate( segments: Vec<Segment>, ass_path: &str, style: &StyleConfig) -> Result<()> {
+    pub fn generate(segments: Vec<Segment>, ass_path: &str, style: &StyleConfig) -> Result<()> {
         let primary_color   = Self::css_hex_to_ass(&style.text_color);
         let highlight_color = Self::css_hex_to_ass(&style.highlight_color);
         let alignment       = Self::map_alignment(&style.text_alignment, &style.vertical_position);
+        let border_style    = style.border_style.unwrap_or(1);
 
-        let solid_background = if style.background.r#type == "solid" {
-            style.background.solid_color.as_deref().unwrap_or("#000000")
+        let back_color = if border_style == 3 {
+            Self::css_hex_to_ass(&style.highlight_color)
         } else {
-            "#000000"
+            "&H00000000".to_string() // if none set, apply transparent background
         };
-        let back_color = Self::css_hex_to_ass(solid_background);
+
+        let bold = match style.font_weight.as_str() {
+            "bold" => -1,
+            _ => 0,
+        };
 
         let mut ass_content = String::new();
         ass_content.push_str("[Script Info]\n");
@@ -64,41 +69,54 @@ impl SubtitleGenerator {
         ass_content.push_str("PlayResX: 1280\n\n");
 
         ass_content.push_str("[V4+ Styles]\n");
-        ass_content.push_str(
-            "Format: Name, Fontname, Fontsize, PrimaryColour,
-            SecondaryColour, OutlineColour, BackColour, Bold,
-            Italic, Underline, StrikeOut, ScaleX, ScaleY,
-            Spacing, Angle, BorderStyle, Outline, Shadow,
-            Alignment, MarginL, MarginR, MarginV, Encoding\n"
-        );
+        ass_content.push_str("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n");
         ass_content.push_str(&format!(
-            "Style: Default,{},{},{},{},{},{},-1,0,0,0,100,100,0,0,1,2,2,{},10,10,10,1\n\n",
+            "Style: Default,{},{},{},{},{},{},{},0,0,0,100,100,0,0,{},2,2,{},10,10,10,1\n\n",
             style.font_family,
             style.font_size_px,
             primary_color,
             highlight_color,
-            "&H00000000", // outline
+            style.outline_color,
             back_color,
+            bold,
+            border_style,
             alignment
         ));
 
         ass_content.push_str("[Events]\n");
         ass_content.push_str("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n");
 
+        // Here, we extract the words to render styling
+        let mut words: Vec<WordInfo> = Vec::new();
         for seg in segments {
             for word in seg.words {
-                let start = Self::seconds_to_ass_time(word.start);
-                let end = Self::seconds_to_ass_time(word.end);
-                ass_content.push_str(&format!(
-                    "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{}\n",
-                    start, end, alignment, word.word.trim()
-                ));
+                words.push(word);
             }
+        }
+
+        // Render 3 words per sequence with the current spoken
+        // word being highlighted.
+        for i in 0..words.len() {
+            let prev = if i >= 1 { &words[i-1].word } else { "" };
+            let curr = &words[i].word;
+            let next = if i+1 < words.len() { &words[i+1].word } else { "" };
+
+            let start = words[i].start;
+            let end   = words[i].end;
+
+            ass_content.push_str(&format!(
+                "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{{\\bord0}}{} {{\\bord3\\c&H00FFAA33&}}{} {{\\bord0\\c&H00FFFFFF&}}{}\n",
+                Self::seconds_to_ass_time(start),
+                Self::seconds_to_ass_time(end),
+                alignment,
+                prev, curr, next
+            ));
         }
 
         File::create(ass_path)?.write_all(ass_content.as_bytes())?;
         Ok(())
     }
+
 
     pub fn burn(audio_path: &str, ass_path: &str, output_path: &str, style: &StyleConfig) -> Result<()> {
         info!("Burning subtitles onto synthetic background...");
