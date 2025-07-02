@@ -1,4 +1,4 @@
-use crate::types::{Segment, StyleConfig, WordInfo};
+use crate::types::{Segment, StyleConfig};
 
 use std::fs::File;
 use std::io::Write;
@@ -37,8 +37,8 @@ impl SubtitleGenerator {
     }
 
     fn seconds_to_ass_time(secs: f32) -> String {
-        let hours   = (secs / 3600.0) as u32;
-        let minutes = ((secs % 3600.0) / 60.0) as u32;
+        let hours   = (secs / 3600.0).floor() as u32;
+        let minutes = ((secs % 3600.0) / 60.0).floor() as u32;
         let seconds = (secs % 60.0) as f32;
 
         format!("{:01}:{:02}:{:05.2}", hours, minutes, seconds)
@@ -87,29 +87,28 @@ impl SubtitleGenerator {
         ass_content.push_str("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n");
 
         // Here, we extract the words to render styling
-        let mut words: Vec<WordInfo> = Vec::new();
-        for seg in segments {
-            for word in seg.words {
-                words.push(word);
-            }
+        let mut words: Vec<(f32, f32, &str)> = Vec::new();
+
+        for seg in segments.iter() {
+            words.push((seg.start, seg.end, &seg.word));
         }
 
         // Render 3 words per sequence with the current spoken
         // word being highlighted.
         for i in 0..words.len() {
-            let prev = if i >= 1 { &words[i-1].word } else { "" };
-            let curr = &words[i].word;
-            let next = if i+1 < words.len() { &words[i+1].word } else { "" };
+            let (start, end, curr) = words[i];
 
-            let start = words[i].start;
-            let end   = words[i].end;
+            let prev = if i >= 1 { &words[i-1].2 } else { "" };
+            let next = if i+1 < words.len() { &words[i+1].2 } else { "" };
 
             ass_content.push_str(&format!(
                 "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{{\\bord0}}{} {{\\bord3\\c&H00FFAA33&}}{} {{\\bord0\\c&H00FFFFFF&}}{}\n",
                 Self::seconds_to_ass_time(start),
                 Self::seconds_to_ass_time(end),
                 alignment,
-                prev, curr, next
+                prev,
+                curr,
+                next
             ));
         }
 
@@ -117,8 +116,12 @@ impl SubtitleGenerator {
         Ok(())
     }
 
-
-    pub fn burn(audio_path: &str, ass_path: &str, output_path: &str, style: &StyleConfig) -> Result<()> {
+    pub fn burn(
+        audio_path: &str,
+        ass_path: &str,
+        output_path: &str,
+        style: &StyleConfig
+    ) -> Result<()> {
         info!("Burning subtitles onto synthetic background...");
 
         let mut cmd = Command::new("ffmpeg");
@@ -130,13 +133,13 @@ impl SubtitleGenerator {
                 let color_hex = &color[1..];
                 cmd.args(&["-f", "lavfi", "-i", &format!("color=c=0x{}:s=1280x720:d=3600", color_hex)]);
             },
-            "image" => {
-                let img = style.background.image_url.as_deref().expect("imageUrl required for image background");
-                cmd.args(&["-loop", "1", "-i", img]);
-            },
             "video" => {
-                let vid = style.background.video_url.as_deref().expect("videoUrl required for video background");
-                cmd.args(&["-i", vid]);
+                let vid = style.background.video_path.as_deref().expect("video path required for video background");
+                cmd.args(&["-stream_loop", "-1","-i", vid,]);
+            },
+            "image" => {
+                let img = style.background.image_path.as_deref().expect("image path required for image background");
+                cmd.args(&["-loop", "1", "-i", img]);
             },
             _ => {
                 // fallback
@@ -144,7 +147,15 @@ impl SubtitleGenerator {
             }
         }
 
-        cmd.args(&["-i", audio_path, "-vf", &format!("ass={}", ass_path), "-c:a", "copy", "-shortest", output_path]);
+        cmd.args(&[
+            "-i", audio_path,
+            "-map", "0:v:0",
+            "-map", "1:a:0",
+            "-vf", &format!("ass={}", ass_path),
+            "-c:a", "copy",
+            "-shortest",
+            output_path
+        ]);
 
         let status = cmd.status().context("Failed to run ffmpeg")?;
         if !status.success() {

@@ -35,7 +35,7 @@ fn main() -> Result<()> {
 
     Audio::extract(&input_video, audio_path.to_str().unwrap())?;
 
-    let segments = Audio::transcribe(audio_path.to_str().unwrap())?;
+    let segments = Audio::transcribe("model/ggml-tiny.bin", audio_path.to_str().unwrap())?;
     let style_config: StyleConfig = serde_json::from_reader(File::open("style.json")?)?;
 
     SubtitleGenerator::generate(segments, srt_path.to_str().unwrap(), &style_config)?;

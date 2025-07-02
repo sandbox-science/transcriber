@@ -1,15 +1,17 @@
 {
   "text_alignment": "center",
   "vertical_position": "middle",
-  "font_family": "Inter",
+  "font_family": "Monaco",
   "font_size_px": 48,
   "font_weight": "bold",
   "text_color": "#FFFFFF",
   "highlight_color": "#101020",
-  "border_style": 3,
+  "border_style": 1,
   "outline_color": "&H000000FF",
   "background": {
-    "type": "solid",
-    "solid_color": "#000000"
+    "type": "video",
+    "solid_color": "#101020",
+    "video_path": "assets/bg_example.mp4",
+    "image_path": "assets/bg_image.jpg"
   }
 }
