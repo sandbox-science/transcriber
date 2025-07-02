@@ -9,7 +9,8 @@
   "border_style": 1,
   "outline_color": "&H000000FF",
   "background": {
-    "type": "solid",
-    "solid_color": "#000000"
+    "type": "video",
+    "solid_color": "#101020",
+    "video_path": "assets/bg_example.mp4"
   }
 }
