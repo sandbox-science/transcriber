@@ -3,16 +3,20 @@
 A fast, Rust video subtitle pipeline that:
 
 - Extracts audio from a video using `ffmpeg`
-- Transcribes it to text with timestamps using `whisper_rs`
-- Generates ASS subtitle files with styling
-- Burns subtitles into the original video with `ffmpeg`
+- Transcribes speech into text with precise timestamps using `whisper_rs`
+- Generates styled karaoke-style ASS subtitles (with word-level highlighting)
+- Burns subtitles into videos or overlays on new video, image, or solid color backgrounds with `ffmpeg`
 
 > [!IMPORTANT]
 >
-> This project has been tested on macOS only. Thus, the following information assumes your system is a Mac.
+> **Tested on macOS only.**
+>
+> The instructions below assume you’re on a Mac (using Homebrew).
 
 ## Engineering Requirements Document
-The Engineering Requirements Document (**ERD**) is available here : https://docs.google.com/document/d/1xfLcfE5BA1i_wjUSHHJYuA4zneVqrm4rEg2bf_YeltQ/edit?usp=sharing
+The Engineering Requirements Document (**ERD**) is available here :
+
+-> [ERD on Google Docs](https://docs.google.com/document/d/1xfLcfE5BA1i_wjUSHHJYuA4zneVqrm4rEg2bf_YeltQ/edit?usp=sharing)
 
 ## Getting started
 
@@ -81,4 +85,4 @@ You can control your background type to be either `solid`, `video`, or `image`. 
 
 > [!NOTE]
 >
-> You can find the example of each of those configurations in `example/` directory. In `assests/` directory, you will find the `video` and `image` background used in those examples.
+> You can find the example of each of those configurations in `example/` directory. In `assests/` directory, you will find the `video` and `image` backgrounds used in those examples.
