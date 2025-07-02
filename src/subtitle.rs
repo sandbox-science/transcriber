@@ -116,8 +116,12 @@ impl SubtitleGenerator {
         Ok(())
     }
 
-
-    pub fn burn(audio_path: &str, ass_path: &str, output_path: &str, style: &StyleConfig) -> Result<()> {
+    pub fn burn(
+        audio_path: &str,
+        ass_path: &str,
+        output_path: &str,
+        style: &StyleConfig
+    ) -> Result<()> {
         info!("Burning subtitles onto synthetic background...");
 
         let mut cmd = Command::new("ffmpeg");
@@ -129,14 +133,13 @@ impl SubtitleGenerator {
                 let color_hex = &color[1..];
                 cmd.args(&["-f", "lavfi", "-i", &format!("color=c=0x{}:s=1280x720:d=3600", color_hex)]);
             },
-            // The following is not used, yet
-            "image" => {
-                let img = style.background.image_url.as_deref().expect("imageUrl required for image background");
-                cmd.args(&["-loop", "1", "-i", img]);
-            },
             "video" => {
-                let vid = style.background.video_url.as_deref().expect("videoUrl required for video background");
-                cmd.args(&["-i", vid]);
+                let vid = style.background.video_path.as_deref().expect("video path required for video background");
+                cmd.args(&["-stream_loop", "-1","-i", vid,]);
+            },
+            "image" => {
+                let img = style.background.image_path.as_deref().expect("image path required for image background");
+                cmd.args(&["-loop", "1", "-i", img]);
             },
             _ => {
                 // fallback
@@ -144,7 +147,15 @@ impl SubtitleGenerator {
             }
         }
 
-        cmd.args(&["-i", audio_path, "-vf", &format!("ass={}", ass_path), "-c:a", "copy", "-shortest", output_path]);
+        cmd.args(&[
+            "-i", audio_path,
+            "-map", "0:v:0",
+            "-map", "1:a:0",
+            "-vf", &format!("ass={}", ass_path),
+            "-c:a", "copy",
+            "-shortest",
+            output_path
+        ]);
 
         let status = cmd.status().context("Failed to run ffmpeg")?;
         if !status.success() {
