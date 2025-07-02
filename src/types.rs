@@ -11,8 +11,8 @@ pub struct Segment {
 pub struct BackgroundConfig {
     pub r#type: String,
     pub solid_color: Option<String>,
-    pub image_url: Option<String>,
-    pub video_url: Option<String>,
+    pub image_path: Option<String>,
+    pub video_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
