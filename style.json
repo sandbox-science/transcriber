@@ -11,6 +11,7 @@
   "background": {
     "type": "video",
     "solid_color": "#101020",
-    "video_path": "assets/bg_example.mp4"
+    "video_path": "assets/bg_example.mp4",
+    "image_path": "assets/bg_image.jpg"
   }
 }
