@@ -47,6 +47,7 @@ impl SubtitleGenerator {
     pub fn generate(segments: Vec<Segment>, ass_path: &str, style: &StyleConfig) -> Result<()> {
         let primary_color   = Self::css_hex_to_ass(&style.text_color);
         let highlight_color = Self::css_hex_to_ass(&style.highlight_color);
+        let outline_color   = Self::css_hex_to_ass(&style.outline_color);
         let alignment       = Self::map_alignment(&style.text_alignment, &style.vertical_position);
         let border_style    = style.border_style.unwrap_or(1);
 
@@ -71,12 +72,12 @@ impl SubtitleGenerator {
         ass_content.push_str("[V4+ Styles]\n");
         ass_content.push_str("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n");
         ass_content.push_str(&format!(
-            "Style: Default,{},{},{},{},{},{},{},0,0,0,100,100,0,0,{},2,2,{},10,10,10,1\n\n",
+            "Style: Default,{},{},{},{},{},{},{},0,0,0,100,100,0,0,{},4,4,{},10,10,10,1\n\n",
             style.font_family,
             style.font_size_px,
             primary_color,
             highlight_color,
-            style.outline_color,
+            outline_color,
             back_color,
             bold,
             border_style,
@@ -96,19 +97,27 @@ impl SubtitleGenerator {
         // Render 3 words per sequence with the current spoken
         // word being highlighted.
         for i in 0..words.len() {
-            let (start, end, curr) = words[i];
+            let (start, _, curr) = words[i];
+            let end = if i+1 < words.len() { words[i+1].0 } else {words[i].1};
 
-            let prev = if i >= 1 { &words[i-1].2 } else { "" };
-            let next = if i+1 < words.len() { &words[i+1].2 } else { "" };
+            let prev = if i >= 1 { words[i-1].2 } else { "" };
+            let next = if i+1 < words.len() { words[i+1].2 } else { "" };
+
+            let line_with_highlight = format!(
+                "{{\\bord0\\c&H00FFFFFF&}}{} {{\\bord5\\c{}&\\fs{}}}{} {{\\bord0\\c&H00FFFFFF&}}{}",
+                prev,
+                primary_color,
+                style.font_size_px + 14, // this increases the size of the current word by 12px
+                curr,
+                next
+            );
 
             ass_content.push_str(&format!(
-                "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{{\\bord0}}{} {{\\bord3\\c&H00FFAA33&}}{} {{\\bord0\\c&H00FFFFFF&}}{}\n",
+                "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{}\n",
                 Self::seconds_to_ass_time(start),
                 Self::seconds_to_ass_time(end),
                 alignment,
-                prev,
-                curr,
-                next
+                line_with_highlight.trim()
             ));
         }
 
@@ -135,7 +144,7 @@ impl SubtitleGenerator {
             },
             "video" => {
                 let vid = style.background.video_path.as_deref().expect("video path required for video background");
-                cmd.args(&["-stream_loop", "-1","-i", vid,]);
+                cmd.args(&["-stream_loop", "-1", "-i", vid,]);
             },
             "image" => {
                 let img = style.background.image_path.as_deref().expect("image path required for image background");
