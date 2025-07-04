@@ -51,12 +51,6 @@ impl SubtitleGenerator {
         let alignment       = Self::map_alignment(&style.text_alignment, &style.vertical_position);
         let border_style    = style.border_style.unwrap_or(1);
 
-        let back_color = if border_style == 3 {
-            Self::css_hex_to_ass(&style.highlight_color)
-        } else {
-            "&H00000000".to_string() // if none set, apply transparent background
-        };
-
         let bold = match style.font_weight.as_str() {
             "bold" => -1,
             _ => 0,
@@ -72,13 +66,12 @@ impl SubtitleGenerator {
         ass_content.push_str("[V4+ Styles]\n");
         ass_content.push_str("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n");
         ass_content.push_str(&format!(
-            "Style: Default,{},{},{},{},{},{},{},0,0,0,100,100,0,0,{},4,4,{},10,10,10,1\n\n",
+            "Style: Default,{},{},{},{},{},&H66000000,{},0,0,0,100,100,0,0,{},4,0,{},10,10,10,1\n\n",
             style.font_family,
             style.font_size_px,
             primary_color,
             highlight_color,
             outline_color,
-            back_color,
             bold,
             border_style,
             alignment
@@ -89,36 +82,51 @@ impl SubtitleGenerator {
 
         // Here, we extract the words to render styling
         let mut words: Vec<(f32, f32, &str)> = Vec::new();
-
         for seg in segments.iter() {
             words.push((seg.start, seg.end, &seg.word));
         }
 
         // Render 3 words per sequence with the current spoken
         // word being highlighted.
-        for i in 0..words.len() {
-            let (start, _, curr) = words[i];
-            let end = if i+1 < words.len() { words[i+1].0 } else {words[i].1};
+        let chunk_size = 3;
+        let mut i = 0;
+        while i < words.len() {
+            let window_end   = usize::min(i + chunk_size, words.len());
+            let window_words = &words[i..window_end];
 
-            let prev = if i >= 1 { words[i-1].2 } else { "" };
-            let next = if i+1 < words.len() { words[i+1].2 } else { "" };
+            let start_time   = window_words.first().unwrap().0;
+            let end_time     = window_words.last().unwrap().1;
 
-            let line_with_highlight = format!(
-                "{{\\bord0\\c&H00FFFFFF&}}{} {{\\bord5\\c{}&\\fs{}}}{} {{\\bord0\\c&H00FFFFFF&}}{}",
-                prev,
-                primary_color,
-                style.font_size_px + 14, // this increases the size of the current word by 12px
-                curr,
-                next
-            );
+            let karaoke_line = window_words.iter().map(|&(start, end, word)| {
+                let duration_cs = (((end - start) * 100.0).round()) as u32;
+                format!(
+                    "{{\\k{}}}{}",
+                    duration_cs,
+                    word
+                )
+            }).collect::<Vec<_>>().join(" ");
 
+            // First add the background band (layer 0)
             ass_content.push_str(&format!(
-                "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{}\n",
-                Self::seconds_to_ass_time(start),
-                Self::seconds_to_ass_time(end),
+                "Dialogue: 0,{}, {}, Default,,0,0,0,,{{\\an{}}}{{\\bord0}}{{\\c&H000000&}}{{\\alpha&H77&}}{{\\p1}}m 0 0 l 1280 0 1280 {} 0 {} {{\\p0}}\n",
+                Self::seconds_to_ass_time(start_time),
+                Self::seconds_to_ass_time(end_time),
                 alignment,
-                line_with_highlight.trim()
+                // Height of the band
+                style.font_size_px + 10,
+                style.font_size_px + 10 
             ));
+
+            // Then add the text on top (layer 1)
+            ass_content.push_str(&format!(
+                "Dialogue: 1,{}, {}, Default,,0,0,0,,{{\\an{}}}{}\n",
+                Self::seconds_to_ass_time(start_time),
+                Self::seconds_to_ass_time(end_time),
+                alignment,
+                karaoke_line
+            ));
+
+            i += chunk_size;
         }
 
         File::create(ass_path)?.write_all(ass_content.as_bytes())?;
