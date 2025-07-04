@@ -1,15 +1,15 @@
 {
   "text_alignment": "center",
   "vertical_position": "middle",
-  "font_family": "Monaco",
+  "font_family": "Noto Sans",
   "font_size_px": 48,
   "font_weight": "bold",
-  "text_color": "#59CBE8",
-  "highlight_color": "#101020",
+  "text_color": "#44D62C",
+  "highlight_color": "#C46316",
   "border_style": 1,
-  "outline_color": "#a1000e",
+  "outline_color": "#002f6c",
   "background": {
-    "type": "video",
+    "type": "solid",
     "solid_color": "#101020",
     "video_path": "assets/bg_example.mp4",
     "image_path": "assets/bg_image.jpg"
