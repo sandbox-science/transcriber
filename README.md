@@ -7,6 +7,11 @@ A fast, Rust video subtitle pipeline that:
 - Generates styled karaoke-style ASS subtitles (with word-level highlighting)
 - Burns subtitles into videos or overlays on new video, image, or solid color backgrounds with `ffmpeg`
 
+> [!NOTE]
+> More examples are available in the [example](/example/) directory. The following is just a GIF for visual demo purposes
+
+![DEMO](/example/gif_output_bg_image.gif)
+
 > [!IMPORTANT]
 >
 > **Tested on macOS only.**
@@ -85,4 +90,4 @@ You can control your background type to be either `solid`, `video`, or `image`. 
 
 > [!NOTE]
 >
-> You can find the example of each of those configurations in `example/` directory. In `assests/` directory, you will find the `video` and `image` backgrounds used in those examples.
+> You can find the example of each of those configurations in the [example](/example/) directory. In [assets](/assets/) directory, you will find the `video` and `image` backgrounds used in those examples.
