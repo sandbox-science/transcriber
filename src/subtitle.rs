@@ -1,10 +1,10 @@
 use crate::types::{Segment, StyleConfig};
 
+use anyhow::{Context, Result, anyhow};
+use log::info;
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
-use anyhow::{Context, Result, anyhow};
-use log::info;
 pub struct SubtitleGenerator;
 
 impl SubtitleGenerator {
@@ -23,21 +23,21 @@ impl SubtitleGenerator {
 
     fn map_alignment(horizontal: &str, vertical: &str) -> u8 {
         match (horizontal, vertical) {
-            ("left", "bottom")   => 1,
+            ("left", "bottom") => 1,
             ("center", "bottom") => 2,
-            ("right", "bottom")  => 3,
-            ("left", "middle")   => 4,
+            ("right", "bottom") => 3,
+            ("left", "middle") => 4,
             ("center", "middle") => 5,
-            ("right", "middle")  => 6,
-            ("left", "top")      => 7,
-            ("center", "top")    => 8,
-            ("right", "top")     => 9,
+            ("right", "middle") => 6,
+            ("left", "top") => 7,
+            ("center", "top") => 8,
+            ("right", "top") => 9,
             _ => 2, // default to center bottom
         }
     }
 
     fn seconds_to_ass_time(secs: f32) -> String {
-        let hours   = (secs / 3600.0).floor() as u32;
+        let hours = (secs / 3600.0).floor() as u32;
         let minutes = ((secs % 3600.0) / 60.0).floor() as u32;
         let seconds = (secs % 60.0) as f32;
 
@@ -45,11 +45,11 @@ impl SubtitleGenerator {
     }
 
     pub fn generate(segments: Vec<Segment>, ass_path: &str, style: &StyleConfig) -> Result<()> {
-        let primary_color   = Self::css_hex_to_ass(&style.text_color);
+        let primary_color = Self::css_hex_to_ass(&style.text_color);
         let highlight_color = Self::css_hex_to_ass(&style.highlight_color);
-        let outline_color   = Self::css_hex_to_ass(&style.outline_color);
-        let alignment       = Self::map_alignment(&style.text_alignment, &style.vertical_position);
-        let border_style    = style.border_style.unwrap_or(1);
+        let outline_color = Self::css_hex_to_ass(&style.outline_color);
+        let alignment = Self::map_alignment(&style.text_alignment, &style.vertical_position);
+        let border_style = style.border_style.unwrap_or(1);
 
         let bold = match style.font_weight.as_str() {
             "bold" => -1,
@@ -78,7 +78,9 @@ impl SubtitleGenerator {
         ));
 
         ass_content.push_str("[Events]\n");
-        ass_content.push_str("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n");
+        ass_content.push_str(
+            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
+        );
 
         // Here, we extract the words to render styling
         let mut words: Vec<(f32, f32, &str)> = Vec::new();
@@ -91,20 +93,20 @@ impl SubtitleGenerator {
         let chunk_size = 3;
         let mut i = 0;
         while i < words.len() {
-            let window_end   = usize::min(i + chunk_size, words.len());
+            let window_end = usize::min(i + chunk_size, words.len());
             let window_words = &words[i..window_end];
 
-            let start_time   = window_words.first().unwrap().0;
-            let end_time     = window_words.last().unwrap().1;
+            let start_time = window_words.first().unwrap().0;
+            let end_time = window_words.last().unwrap().1;
 
-            let karaoke_line = window_words.iter().map(|&(start, end, word)| {
-                let duration_cs = (((end - start) * 100.0).round()) as u32;
-                format!(
-                    "{{\\k{}}}{}",
-                    duration_cs,
-                    word
-                )
-            }).collect::<Vec<_>>().join(" ");
+            let karaoke_line = window_words
+                .iter()
+                .map(|&(start, end, word)| {
+                    let duration_cs = (((end - start) * 100.0).round()) as u32;
+                    format!("{{\\k{}}}{}", duration_cs, word)
+                })
+                .collect::<Vec<_>>()
+                .join(" ");
 
             // First add the background band (layer 0)
             ass_content.push_str(&format!(
@@ -114,7 +116,7 @@ impl SubtitleGenerator {
                 alignment,
                 // Height of the band
                 style.font_size_px + 10,
-                style.font_size_px + 10 
+                style.font_size_px + 10,
             ));
 
             // Then add the text on top (layer 1)
@@ -137,7 +139,7 @@ impl SubtitleGenerator {
         audio_path: &str,
         ass_path: &str,
         output_path: &str,
-        style: &StyleConfig
+        style: &StyleConfig,
     ) -> Result<()> {
         info!("Burning subtitles onto synthetic background...");
 
@@ -148,16 +150,29 @@ impl SubtitleGenerator {
             "solid" => {
                 let color = style.background.solid_color.as_deref().unwrap_or("#000000");
                 let color_hex = &color[1..];
-                cmd.args(&["-f", "lavfi", "-i", &format!("color=c=0x{}:s=1280x720:d=3600", color_hex)]);
-            },
+                cmd.args(&[
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    &format!("color=c=0x{}:s=1280x720:d=3600", color_hex),
+                ]);
+            }
             "video" => {
-                let vid = style.background.video_path.as_deref().expect("video path required for video background");
-                cmd.args(&["-stream_loop", "-1", "-i", vid,]);
-            },
+                let vid = style
+                    .background
+                    .video_path
+                    .as_deref()
+                    .expect("video path required for video background");
+                cmd.args(&["-stream_loop", "-1", "-i", vid]);
+            }
             "image" => {
-                let img = style.background.image_path.as_deref().expect("image path required for image background");
+                let img = style
+                    .background
+                    .image_path
+                    .as_deref()
+                    .expect("image path required for image background");
                 cmd.args(&["-loop", "1", "-i", img]);
-            },
+            }
             _ => {
                 // fallback
                 cmd.args(&["-f", "lavfi", "-i", "color=c=black:s=1280x720:d=3600"]);
@@ -165,13 +180,18 @@ impl SubtitleGenerator {
         }
 
         cmd.args(&[
-            "-i", audio_path,
-            "-map", "0:v:0",
-            "-map", "1:a:0",
-            "-vf", &format!("ass={}", ass_path),
-            "-c:a", "copy",
+            "-i",
+            audio_path,
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-vf",
+            &format!("ass={}", ass_path),
+            "-c:a",
+            "copy",
             "-shortest",
-            output_path
+            output_path,
         ]);
 
         let status = cmd.status().context("Failed to run ffmpeg")?;
