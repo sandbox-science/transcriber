@@ -12,6 +12,9 @@ A fast, Rust video subtitle pipeline that:
 
 ![DEMO](/example/gif_output_bg_image.gif)
 
+
+https://github.com/user-attachments/assets/f2f820bb-7de7-41a9-b6f8-0dcf359cb02e
+
 > [!IMPORTANT]
 >
 > **Tested on macOS only.**
