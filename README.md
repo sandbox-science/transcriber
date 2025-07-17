@@ -8,9 +8,9 @@ A fast, Rust video subtitle pipeline that:
 - Burns subtitles into videos or overlays on new video, image, or solid color backgrounds with `ffmpeg`
 
 > [!NOTE]
-> More examples are available in the [example](/example/) directory. The following is just a GIF for visual demo purposes
+> More examples are available in the [example](/example/) directory.
 
-![DEMO](/example/gif_output_bg_image.gif)
+https://github.com/user-attachments/assets/7f2903f3-c2e1-4176-ae0e-cd173ac3d64c
 
 > [!IMPORTANT]
 >
