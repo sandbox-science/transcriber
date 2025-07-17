@@ -1,4 +1,4 @@
-# Transcriber
+# Capski CLI
 
 A fast, Rust video subtitle pipeline that:
 
