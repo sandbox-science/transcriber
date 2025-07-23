@@ -37,9 +37,20 @@ cargo install --path .
 ```
 
 ### 3. Run Capski
+Basic transcription (auto-detects language):
 ```bash
 capski --input "example/input_audio.wav"
 ```
+To explicity set the source language and translate to English:
+```bash
+capski --input "example/input_audio.wav" --language FR --translate
+```
+
+> [!NOTE]
+> Capski uses Whisper to transcribe audio.
+> If you want to translate non-English speech into English subtitles, use the --translate flag along with the --language option to specify the source language (e.g., fr for French, es for Spanish).
+>
+> 📌 Whisper only supports translation into English. Translating English into other languages is not supported.
 
 This runs the pipeline end-to-end:
 - extracts or processes audio,
