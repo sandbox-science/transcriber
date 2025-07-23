@@ -16,6 +16,8 @@ fn main() -> Result<()> {
         output: opts.output,
         model_path: "model/ggml-tiny.bin".to_string(),
         style,
+        translate: opts.translate,
+        language: Some(opts.language),
     };
 
     app.run()
