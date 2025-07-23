@@ -30,15 +30,15 @@ The Engineering Requirements Document (**ERD**) is available here :
 brew install ffmpeg
 ```
 
-### 2. Build Transcriber
-You can now build the transcriber using Rust Cargo.
+### 2. Install Capski
+You can now install Capski using Rust Cargo.
 ```bash
-cargo build
+cargo install --path .
 ```
 
-### 3. Run Transcriber
+### 3. Run Capski
 ```bash
-cargo run -- --input "example/input_audio.wav"
+capski --input "example/input_audio.wav"
 ```
 
 This runs the pipeline end-to-end:
