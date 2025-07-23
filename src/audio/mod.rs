@@ -8,7 +8,12 @@ use crate::types::Segment;
 use anyhow::Result;
 
 pub trait Capski {
-    fn transcribe(model_path: &str, audio_path: &str) -> Result<Vec<Segment>>;
+    fn transcribe(
+        model_path: &str,
+        audio_path: &str,
+        translate: bool,
+        language: &Option<String>,
+    ) -> Result<Vec<Segment>>;
 }
 
 pub trait Extractor {

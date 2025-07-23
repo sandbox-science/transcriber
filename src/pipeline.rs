@@ -9,6 +9,8 @@ use std::path::Path;
 pub struct CapskiApp {
     pub input: String,
     pub output: String,
+    pub translate: bool,
+    pub language: Option<String>,
     pub model_path: String,
     pub style: StyleConfig,
 }
@@ -27,7 +29,12 @@ impl CapskiApp {
         let subtitle_path = build_dir.join(format!("{}.ass", base));
 
         FfmpegExtractor::extract(&self.input, audio_path.to_str().unwrap())?;
-        let segments = WhisperCapski::transcribe(&self.model_path, audio_path.to_str().unwrap())?;
+        let segments = WhisperCapski::transcribe(
+            &self.model_path,
+            audio_path.to_str().unwrap(),
+            self.translate,
+            &self.language,
+        )?;
 
         SubtitleGenerator::generate(segments, subtitle_path.to_str().unwrap(), &self.style)?;
         SubtitleGenerator::burn(
