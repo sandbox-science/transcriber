@@ -41,9 +41,13 @@ Basic transcription (auto-detects language):
 ```bash
 capski --input "example/input_audio.wav"
 ```
-To explicity set the source language and translate to English:
+You can also translate your non-English audio to English:
 ```bash
-capski --input "example/input_audio.wav" --language FR --translate
+capski --input "japanese_audio.wav" --translate
+```
+Also explicity set the source language to translate to English:
+```bash
+capski --input "french_audio.wav" --language FR --translate
 ```
 
 > [!NOTE]

@@ -1,7 +1,7 @@
 build
 
 *.mp3
-# *.mp4
+*.mp4
 *.mov
 
 .venv
