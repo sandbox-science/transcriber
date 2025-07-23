@@ -8,3 +8,5 @@ build
 .mypy_cache
 
 target
+
+.DS_Store

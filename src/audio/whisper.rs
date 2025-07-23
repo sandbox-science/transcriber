@@ -1,18 +1,19 @@
 use crate::types::Segment;
 
+use super::Capski;
 use anyhow::{Context, Result};
 use log::info;
-use std::process::Command;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-pub struct Audio;
+pub struct WhisperCapski;
 
-impl Audio {
+impl Capski for WhisperCapski {
     // Function to transcribe audio using the Whisper model
-    pub fn transcribe(model_path: &str, audio_path: &str) -> Result<Vec<Segment>> {
+    fn transcribe(model_path: &str, audio_path: &str) -> Result<Vec<Segment>> {
         info!("Transcribing with Whisper...");
 
-        let reader = hound::WavReader::open(audio_path).expect("failed to open file");
+        let reader = hound::WavReader::open(audio_path)
+            .with_context(|| format!("failed to open audio file: {}", audio_path))?;
 
         // Read WAV file and collect samples
         let samples: Vec<i16> = reader.into_samples::<i16>().map(|x| x.unwrap()).collect();
@@ -90,33 +91,5 @@ impl Audio {
         }
 
         Ok(segments)
-    }
-
-    // Function to extract audio from a video file
-    pub fn extract(video_path: &str, audio_path: &str) -> Result<()> {
-        info!("Extracting audio from {} to {}", video_path, audio_path);
-
-        let status = Command::new("ffmpeg")
-            .args(&[
-                "-y",
-                "-i",
-                video_path,
-                "-vn",
-                "-acodec",
-                "pcm_s16le",
-                "-ar",
-                "16000",
-                "-ac",
-                "1",
-                audio_path,
-            ])
-            .status()
-            .context("Failed to extract audio")?;
-
-        if !status.success() {
-            return Err(anyhow::anyhow!("ffmpeg failed to extract audio"));
-        }
-
-        Ok(())
     }
 }
